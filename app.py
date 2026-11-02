@@ -102,6 +102,12 @@ st.markdown("""
         border-radius: 6px;
         border-left: 3px solid #FF6F00;
     }
+
+    /* Ajuste para alinhar os seletores de produtos na mesma linha */
+    .stSelectbox label, .stNumberInput label {
+        font-size: 0.75rem !important;
+        margin-bottom: 0px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -282,7 +288,7 @@ if 'user_income' not in st.session_state:
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
 if 'custom_basket' not in st.session_state:
-    st.session_state.custom_basket = {} # Formato: {(p_id, peso): {"qtd": x, "preco": y, "nome": name}}
+    st.session_state.custom_basket = {}
 if 'user_cep' not in st.session_state:
     st.session_state.user_cep = "02300-000"
 if 'search_radius' not in st.session_state:
@@ -366,21 +372,22 @@ elif st.session_state.step == 'basket_selection':
         <div class="card-box">
             <span class="badge-orange">⚙️ 100% Customizável</span>
             <h4 style="margin: 5px 0; color: #E53935;">Cesta Personalizada</h4>
-            <p style="color: #666; font-size: 0.85rem;">Escolha itens e tamanhos/pesos no catálogo estendido (Limpeza, Higiene e mais).</p>
+            <p style="color: #666; font-size: 0.85rem;">Escolha itens e tamanhos no catálogo estendido (Limpeza, Higiene e mais).</p>
         </div>
     """, unsafe_allow_html=True)
     
     if st.button("Montar Cesta Customizada"):
         st.session_state.basket_type = 'custom'
+        st.session_state.custom_basket = {}  # Limpa seleções anteriores para evitar erros
         st.session_state.step = 'custom_builder'
         st.rerun()
 
 # ==========================================
-# TELA 3.A: MONTAGEM DA CESTA CUSTOMIZADA (COM SELEÇÃO DE PESO/OPÇÃO)
+# TELA 3.A: MONTAGEM DA CESTA COMPACTA (1 LINHA POR PRODUTO)
 # ==========================================
 elif st.session_state.step == 'custom_builder':
     st.markdown('<div class="main-title">Monte sua Cesta 🛒</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Selecione o produto, o tamanho/peso e a quantidade:</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Escolha a opção de peso/tamanho e a quantidade:</div>', unsafe_allow_html=True)
 
     categorias = list(CATALOGO_ESTENDIDO.keys())
     tabs = st.tabs(categorias)
@@ -390,37 +397,54 @@ elif st.session_state.step == 'custom_builder':
             for prod in CATALOGO_ESTENDIDO[cat]:
                 p_id = prod["id"]
                 p_nome = prod["nome"]
+                lista_pesos = list(prod["variacoes"].keys())
                 
-                st.markdown(f"### {p_nome}")
+                # Layout compacto em colunas: Nome (40%) | Peso/Opção (35%) | Quantidade (25%)
+                col_nome, col_peso, col_qtd = st.columns([2.2, 2.0, 1.5])
                 
-                # Para cada variação de peso/embalagem do mesmo produto
-                for peso_label, preco in prod["variacoes"].items():
-                    key_item = f"{p_id}_{peso_label}"
-                    qtd_atual = st.session_state.custom_basket.get(key_item, {}).get("qtd", 0)
-                    
-                    col1, col2 = st.columns([3, 2])
-                    with col1:
-                        st.markdown(f"**{peso_label}**")
-                        st.caption(f"Méd. R$ {preco:.2f}")
-                    with col2:
-                        nova_qtd = st.number_input(
-                            "Qtd:",
-                            min_value=0,
-                            max_value=20,
-                            value=qtd_atual,
-                            key=f"input_{key_item}"
-                        )
-                        if nova_qtd > 0:
-                            st.session_state.custom_basket[key_item] = {
-                                "nome": f"{p_nome} ({peso_label})",
-                                "qtd": nova_qtd,
-                                "preco_un": preco
-                            }
-                        elif key_item in st.session_state.custom_basket:
-                            del st.session_state.custom_basket[key_item]
-                st.markdown("---")
+                with col_nome:
+                    st.markdown(f"**{p_nome}**")
+                
+                with col_peso:
+                    peso_sel = st.selectbox(
+                        "Opção",
+                        options=lista_pesos,
+                        key=f"sel_{p_id}",
+                        label_visibility="collapsed"
+                    )
+                    preco_sel = prod["variacoes"][peso_sel]
+                    st.caption(f"R$ {preco_sel:.2f}")
 
-    total_itens = sum(item["qtd"] for item in st.session_state.custom_basket.values())
+                with col_qtd:
+                    key_item = f"{p_id}_{peso_sel}"
+                    qtd_existente = st.session_state.custom_basket.get(key_item, {}).get("qtd", 0) if isinstance(st.session_state.custom_basket.get(key_item), dict) else 0
+                    
+                    nova_qtd = st.number_input(
+                        "Qtd",
+                        min_value=0,
+                        max_value=20,
+                        value=qtd_existente,
+                        key=f"qtd_{p_id}",
+                        label_visibility="collapsed"
+                    )
+
+                    if nova_qtd > 0:
+                        st.session_state.custom_basket[key_item] = {
+                            "nome": f"{p_nome} ({peso_sel})",
+                            "qtd": nova_qtd,
+                            "preco_un": preco_sel
+                        }
+                    elif key_item in st.session_state.custom_basket:
+                        del st.session_state.custom_basket[key_item]
+                        
+                st.markdown("<hr style='margin: 8px 0; border-top: 1px solid #f0f0f0;'>", unsafe_allow_html=True)
+
+    # Cálculo seguro do total de itens
+    total_itens = 0
+    for v in st.session_state.custom_basket.values():
+        if isinstance(v, dict) and "qtd" in v:
+            total_itens += v["qtd"]
+
     st.markdown(f"**Total de pacotes/unidades:** `{total_itens}`")
 
     if total_itens > 0:
@@ -485,7 +509,8 @@ elif st.session_state.step == 'results':
     else:
         with st.expander("📋 Ver produtos e pesos selecionados na sua Cesta Customizada"):
             for item_data in st.session_state.custom_basket.values():
-                st.markdown(f"- {item_data['nome']} x {item_data['qtd']}")
+                if isinstance(item_data, dict) and "nome" in item_data:
+                    st.markdown(f"- {item_data['nome']} x {item_data['qtd']}")
     
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -494,7 +519,11 @@ elif st.session_state.step == 'results':
 
     # Calcular o preço total de acordo com a cesta escolhida
     if st.session_state.basket_type == 'custom':
-        valor_base_custom = sum(item["preco_un"] * item["qtd"] for item in st.session_state.custom_basket.values())
+        valor_base_custom = sum(
+            item["preco_un"] * item["qtd"] 
+            for item in st.session_state.custom_basket.values() 
+            if isinstance(item, dict) and "preco_un" in item
+        )
 
         for loja in lojas_filtradas:
             loja["preco_exibido"] = valor_base_custom * loja["fator_custom"]
@@ -518,31 +547,3 @@ elif st.session_state.step == 'results':
                 <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
                 <h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor['nome']}</h3>
                 <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
-                <div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor['preco_exibido']:.2f}</div>
-                <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor['nome']}).</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        if demais_lojas:
-            st.markdown("---")
-            st.markdown("#### Demais Opções Disponíveis na Região:")
-            
-            for loja in demais_lojas:
-                st.markdown(
-                    f"""
-                    <div class="card-box">
-                        <strong>🛒 {loja['nome']}</strong><br>
-                        <div class="address-text">📍 {loja['endereco']} ({loja['distancia_km']} km)</div>
-                        <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja['preco_exibido']:.2f}</span><br>
-                        <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja['nome']}).</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⚙️ Ajustar Raio ou Cesta"):
-        st.session_state.step = 'location_setup'
-        st.rerun()
