@@ -93,10 +93,11 @@ st.markdown("""
         margin-bottom: 6px;
     }
 
-    .link-pagamento {
+    .info-pagamento {
         font-size: 0.78rem;
-        color: #1976D2;
-        text-decoration: none;
+        color: #757575;
+        font-style: italic;
+        margin-top: 4px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -104,46 +105,40 @@ st.markdown("""
 # 3. Base de Dados Simulada (Unidades Reais da Zona Norte de SP)
 LOJAS_ZN_DATABASE = [
     {
-        "nome": "Assaí Atacadista",
-        "endereco": "Av. Senador José Ermírio de Moraes, 100 - Jaçanã",
-        "distancia_km": 1.8,
-        "preco_cesta": 281.50,
-        "url_pagamento": "https://www.assai.com.br/nossas-lojas"
-    },
-    {
         "nome": "Supermercado Bergamini",
         "endereco": "Av. Luis Stamatis, 431 - Jaçanã",
         "distancia_km": 2.5,
         "preco_cesta": 278.90,
-        "url_pagamento": "https://www.bergamini.com.br"
+    },
+    {
+        "nome": "Assaí Atacadista",
+        "endereco": "Av. Senador José Ermírio de Moraes, 100 - Jaçanã",
+        "distancia_km": 1.8,
+        "preco_cesta": 281.50,
     },
     {
         "nome": "Giga Atacado",
         "endereco": "Av. Nova Cantareira, 5300 - Tremembé",
         "distancia_km": 3.9,
         "preco_cesta": 285.00,
-        "url_pagamento": "https://www.gigaatacado.com.br/nossas-lojas"
     },
     {
         "nome": "Atacadão",
         "endereco": "Av. Otaviano Alves de Lima, 1828 - Limão",
         "distancia_km": 5.4,
         "preco_cesta": 289.90,
-        "url_pagamento": "https://www.atacadao.com.br/nossas-lojas"
     },
     {
         "nome": "Sonda Supermercados",
         "endereco": "R. Voluntários da Pátria, 3530 - Santana",
         "distancia_km": 6.2,
         "preco_cesta": 312.00,
-        "url_pagamento": "https://www.sondadelivery.com.br/"
     },
     {
         "nome": "Tenda Atacado",
         "endereco": "Av. Inajar de Sousa, 3500 - Limão",
         "distancia_km": 7.8,
         "preco_cesta": 295.00,
-        "url_pagamento": "https://www.tendaatacado.com.br/nossas-lojas"
     }
 ]
 
@@ -155,7 +150,7 @@ if 'user_income' not in st.session_state:
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
 if 'user_cep' not in st.session_state:
-    st.session_state.user_cep = "02300-000" # Exemplo ZN (Jaçanã/Tremembé)
+    st.session_state.user_cep = "02300-000"
 if 'search_radius' not in st.session_state:
     st.session_state.search_radius = 5
 
@@ -302,7 +297,7 @@ elif st.session_state.step == 'results':
                 <h3 style="margin: 5px 0; color: #1B5E20;">{vencedor['nome']}</h3>
                 <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
                 <div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor['preco_cesta']:.2f}</div>
-                <a href="{vencedor['url_pagamento']}" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
+                <div class="info-pagamento">ℹ️ Consulte formas de pagamento diretamente com a rede.</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -317,7 +312,7 @@ elif st.session_state.step == 'results':
                         <strong>{loja['nome']}</strong><br>
                         <div class="address-text">📍 {loja['endereco']} ({loja['distancia_km']} km)</div>
                         <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja['preco_cesta']:.2f}</span><br>
-                        <a href="{loja['url_pagamento']}" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
+                        <div class="info-pagamento">ℹ️ Consulte formas de pagamento diretamente com a rede.</div>
                     </div>
                 """, unsafe_allow_html=True)
 
