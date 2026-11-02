@@ -563,4 +563,15 @@ elif st.session_state.step == 'results':
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
-        if st
+        if st.button("📍 Alterar CEP/Raio"):
+            st.session_state.step = 'location_setup'
+            st.rerun()
+            
+    with col_btn2:
+        texto_botao = "✏️ Alterar Itens" if st.session_state.basket_type == 'custom' else "🛒 Mudar Cesta"
+        if st.button(texto_botao):
+            if st.session_state.basket_type == 'custom':
+                st.session_state.step = 'custom_builder'
+            else:
+                st.session_state.step = 'basket_selection'
+            st.rerun()
