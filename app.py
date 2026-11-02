@@ -101,7 +101,53 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Estado da Sessão
+# 3. Base de Dados Simulada (Unidades Reais da Zona Norte de SP)
+LOJAS_ZN_DATABASE = [
+    {
+        "nome": "Assaí Atacadista",
+        "endereco": "Av. Senador José Ermírio de Moraes, 100 - Jaçanã",
+        "distancia_km": 1.8,
+        "preco_cesta": 281.50,
+        "url_pagamento": "https://www.assai.com.br/nossas-lojas"
+    },
+    {
+        "nome": "Supermercado Bergamini",
+        "endereco": "Av. Luis Stamatis, 431 - Jaçanã",
+        "distancia_km": 2.5,
+        "preco_cesta": 278.90,
+        "url_pagamento": "https://www.bergamini.com.br"
+    },
+    {
+        "nome": "Giga Atacado",
+        "endereco": "Av. Nova Cantareira, 5300 - Tremembé",
+        "distancia_km": 3.9,
+        "preco_cesta": 285.00,
+        "url_pagamento": "https://www.gigaatacado.com.br/nossas-lojas"
+    },
+    {
+        "nome": "Atacadão",
+        "endereco": "Av. Otaviano Alves de Lima, 1828 - Limão",
+        "distancia_km": 5.4,
+        "preco_cesta": 289.90,
+        "url_pagamento": "https://www.atacadao.com.br/nossas-lojas"
+    },
+    {
+        "nome": "Sonda Supermercados",
+        "endereco": "R. Voluntários da Pátria, 3530 - Santana",
+        "distancia_km": 6.2,
+        "preco_cesta": 312.00,
+        "url_pagamento": "https://www.sondadelivery.com.br/"
+    },
+    {
+        "nome": "Tenda Atacado",
+        "endereco": "Av. Inajar de Sousa, 3500 - Limão",
+        "distancia_km": 7.8,
+        "preco_cesta": 295.00,
+        "url_pagamento": "https://www.tendaatacado.com.br/nossas-lojas"
+    }
+]
+
+# 4. Estado da Sessão
 if 'step' not in st.session_state:
     st.session_state.step = 'onboarding'
 if 'user_income' not in st.session_state:
@@ -109,7 +155,7 @@ if 'user_income' not in st.session_state:
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
 if 'user_cep' not in st.session_state:
-    st.session_state.user_cep = "02000-000"
+    st.session_state.user_cep = "02300-000" # Exemplo ZN (Jaçanã/Tremembé)
 if 'search_radius' not in st.session_state:
     st.session_state.search_radius = 5
 
@@ -230,57 +276,52 @@ elif st.session_state.step == 'location_setup':
         st.rerun()
 
 # ==========================================
-# TELA 4: RESULTADOS E COMPARAÇÃO COMPLETA
+# TELA 4: RESULTADOS E COMPARAÇÃO DINÂMICA
 # ==========================================
 elif st.session_state.step == 'results':
-    st.markdown('<div class="main-title">Comparativo Completo 📍</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-title">Exibindo <strong>todas</strong> as opções num raio de <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">Comparativo Dinâmico 📍</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="sub-title">Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
     
-    # 1. Vencedor (Mais barato)
-    st.markdown("""
-        <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
-            <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
-            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista</h3>
-            <div class="address-text">📍 Av. Eng. Caetano Alvares, 5500 - Mandaqui (2.1 km)</div>
-            <div class="price-tag" style="margin-bottom: 6px;">R$ 281,50</div>
-            <a href="https://www.assai.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown("#### Demais Opções Disponíveis na Região:")
+    # Filtrar lojas com base no raio escolhido
+    lojas_filtradas = [loja for loja in LOJAS_ZN_DATABASE if loja["distancia_km"] <= st.session_state.search_radius]
     
-    # Opção 2
-    st.markdown("""
-        <div class="card-box">
-            <strong>Atacadão</strong><br>
-            <div class="address-text">📍 Av. Otaviano Alves de Lima, 1828 - Limão (3.4 km)</div>
-            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 289,90</span><br>
-            <a href="https://www.atacadao.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
-        </div>
-    """, unsafe_allow_html=True)
+    # Ordenar por menor preço da cesta
+    lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_cesta"])
+    
+    if not lojas_filtradas:
+        st.warning("⚠️ Nenhuma unidade encontrada neste raio de distância. Tente aumentar os quilômetros no passo anterior.")
+    else:
+        # A primeira da lista é a vencedora (mais barata)
+        vencedor = lojas_filtradas[0]
+        demais_lojas = lojas_filtradas[1:]
+        
+        # Exibir Card Destaque (Menor Preço)
+        st.markdown(f"""
+            <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
+                <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
+                <h3 style="margin: 5px 0; color: #1B5E20;">{vencedor['nome']}</h3>
+                <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
+                <div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor['preco_cesta']:.2f}</div>
+                <a href="{vencedor['url_pagamento']}" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
+            </div>
+        """, unsafe_allow_html=True)
 
-    # Opção 3
-    st.markdown("""
-        <div class="card-box">
-            <strong>Tenda Atacado</strong><br>
-            <div class="address-text">📍 Av. Inajar de Sousa, 3500 - Limão (4.1 km)</div>
-            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 295,00</span><br>
-            <a href="https://www.tendaatacado.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Opção 4
-    st.markdown("""
-        <div class="card-box">
-            <strong>Sonda Supermercados</strong><br>
-            <div class="address-text">📍 R. Voluntários da Pátria, 3530 - Santana (4.8 km)</div>
-            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 312,00</span><br>
-            <a href="https://www.sondadelivery.com.br/" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
-        </div>
-    """, unsafe_allow_html=True)
+        if demais_lojas:
+            st.markdown("---")
+            st.markdown("#### Demais Opções Disponíveis na Região:")
+            
+            # Exibir todas as outras unidades que passaram no filtro de raio
+            for loja in demais_lojas:
+                st.markdown(f"""
+                    <div class="card-box">
+                        <strong>{loja['nome']}</strong><br>
+                        <div class="address-text">📍 {loja['endereco']} ({loja['distancia_km']} km)</div>
+                        <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja['preco_cesta']:.2f}</span><br>
+                        <a href="{loja['url_pagamento']}" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
+                    </div>
+                """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⚙️ Alterar CEP / Raio ou Cesta"):
+    if st.button("⚙️ Ajustar Raio ou Cesta"):
         st.session_state.step = 'location_setup'
         st.rerun()
