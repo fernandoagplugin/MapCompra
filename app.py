@@ -55,10 +55,10 @@ st.markdown("""
         background: linear-gradient(90deg, #FF6F00, #E53935);
         color: white;
         font-weight: bold;
-        font-size: 1rem;
+        font-size: 0.9rem;
         border: none;
         border-radius: 10px;
-        padding: 10px 20px;
+        padding: 10px 10px;
         width: 100%;
         box-shadow: 0 4px 10px rgba(229, 57, 53, 0.3);
         transition: all 0.3s ease;
@@ -340,7 +340,7 @@ elif st.session_state.step == 'income':
         st.rerun()
 
 # ==========================================
-# TELA 3: CONFIGURAÇÃO DE LOCALIZAÇÃO E RAIO (PRIMEIRO)
+# TELA 3: CONFIGURAÇÃO DE LOCALIZAÇÃO E RAIO
 # ==========================================
 elif st.session_state.step == 'location_setup':
     st.markdown('<div class="main-title">Onde você está? 📍</div>', unsafe_allow_html=True)
@@ -370,7 +370,7 @@ elif st.session_state.step == 'location_setup':
         st.rerun()
 
 # ==========================================
-# TELA 4: SELEÇÃO DO TIPO DE CESTA (DEPOIS DA LOCALIZAÇÃO)
+# TELA 4: SELEÇÃO DO TIPO DE CESTA
 # ==========================================
 elif st.session_state.step == 'basket_selection':
     st.markdown('<div class="main-title">Simulador de Cesta 🛍️</div>', unsafe_allow_html=True)
@@ -401,7 +401,8 @@ elif st.session_state.step == 'basket_selection':
     
     if st.button("Montar Cesta Customizada"):
         st.session_state.basket_type = 'custom'
-        st.session_state.custom_basket = {}
+        if not st.session_state.custom_basket:
+            st.session_state.custom_basket = {}
         st.session_state.step = 'custom_builder'
         st.rerun()
 
@@ -525,7 +526,7 @@ elif st.session_state.step == 'results':
     lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_exibido"])
     
     if not lojas_filtradas:
-        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio na etapa anterior para ver as opções disponíveis.")
+        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente alterar o raio ou o CEP abaixo.")
     else:
         vencedor = lojas_filtradas[0]
         demais_lojas = lojas_filtradas[1:]
@@ -557,6 +558,16 @@ elif st.session_state.step == 'results':
                 st.markdown(card_loja_html, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⚙️ Alterar Localização ou Cesta"):
-        st.session_state.step = 'location_setup'
-        st.rerun()
+    
+    # Botões lado a lado para Alterar CEP / Raio ou Alterar Cesta
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button("📍 Alterar CEP/Raio"):
+            st.session_state.step = 'location_setup'
+            st.rerun()
+            
+    with col_btn2:
+        if st.button("🛒 Alterar Cesta"):
+            st.session_state.step = 'basket_selection'
+            st.rerun()
