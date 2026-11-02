@@ -95,6 +95,10 @@ if 'user_income' not in st.session_state:
     st.session_state.user_income = None
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
+if 'user_cep' not in st.session_state:
+    st.session_state.user_cep = "02000-000" # Exemplo Zona Norte SP
+if 'search_radius' not in st.session_state:
+    st.session_state.search_radius = 5
 
 # ==========================================
 # TELA 1: ONBOARDING & LOGIN
@@ -163,9 +167,9 @@ elif st.session_state.step == 'basket_selection':
         </div>
     """, unsafe_allow_html=True)
     
-    if st.button("Simular Cesta Oficial"):
+    if st.button("Selecionar Cesta Oficial"):
         st.session_state.basket_type = 'oficial'
-        st.session_state.step = 'results'
+        st.session_state.step = 'location_setup'
         st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -183,43 +187,72 @@ elif st.session_state.step == 'basket_selection':
         st.info("Catálogo de 50 itens em desenvolvimento!")
 
 # ==========================================
+# TELA 3.1: CONFIGURAÇÃO DE LOCALIZAÇÃO E RAIO
+# ==========================================
+elif st.session_state.step == 'location_setup':
+    st.markdown('<div class="main-title">Onde você está? 📍</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Defina o seu CEP e a distância máxima para a busca.</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="card-box">', unsafe_allow_html=True)
+    cep_input = st.text_input("Digite seu CEP ou Bairro:", value=st.session_state.user_cep)
+    
+    radius_input = st.slider(
+        "Raio máximo de distância (km):",
+        min_value=1,
+        max_value=20,
+        value=st.session_state.search_radius,
+        step=1
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    if st.button("🔍 Buscar Menor Preço na Região"):
+        st.session_state.user_cep = cep_input
+        st.session_state.search_radius = radius_input
+        st.session_state.step = 'results'
+        st.rerun()
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⬅️ Voltar"):
+        st.session_state.step = 'basket_selection'
+        st.rerun()
+
+# ==========================================
 # TELA 4: RESULTADOS E COMPARAÇÃO DE PREÇOS
 # ==========================================
 elif st.session_state.step == 'results':
     st.markdown('<div class="main-title">Comparativo de Preços 📍</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Cesta Básica Oficial (Decreto nº 399/1938) num raio de 5 km.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="sub-title">Cesta Oficial num raio de <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
     
-    # Destaque para o Mercado Mais Barato
-    st.markdown("""
+    # Destaque para o Mercado Mais Barato ajustado à região
+    st.markdown(f"""
         <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
             <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Melhor Preço Próximo</span>
-            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista (Pinheiros)</h3>
-            <p style="color: #555; font-size: 0.85rem; margin-bottom: 5px;">📍 a 2.4 km de distância • Aceita VR/VA</p>
-            <div class="price-tag">R$ 284,90 <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(Total da Cesta)</span></div>
+            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista (Zona Norte)</h3>
+            <p style="color: #555; font-size: 0.85rem; margin-bottom: 5px;">📍 a 2.1 km de distância • Aceita VR/VA</p>
+            <div class="price-tag">R$ 281,50 <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(Total da Cesta)</span></div>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("#### Outras Opções na Região:")
     
-    # Outros mercados
     st.markdown("""
         <div class="card-box">
-            <strong>Carrefour Hipermercado</strong><br>
-            <span style="color: #666; font-size: 0.85rem;">📍 3.8 km • Aceita Pix, Ticket</span><br>
-            <span style="color: #E53935; font-weight: bold;">R$ 299,50</span>
+            <strong>Atacadão (Limão)</strong><br>
+            <span style="color: #666; font-size: 0.85rem;">📍 3.4 km • Aceita Cartão, Pix</span><br>
+            <span style="color: #E53935; font-weight: bold;">R$ 289,90</span>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
         <div class="card-box">
-            <strong>Pão de Açúcar</strong><br>
-            <span style="color: #666; font-size: 0.85rem;">📍 1.1 km • Aceita VR, Cartão</span><br>
-            <span style="color: #E53935; font-weight: bold;">R$ 325,00</span>
+            <strong>Sonda Supermercados</strong><br>
+            <span style="color: #666; font-size: 0.85rem;">📍 4.8 km • Aceita VR, Ticket</span><br>
+            <span style="color: #E53935; font-weight: bold;">R$ 312,00</span>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⬅️ Recomeçar / Alterar Cesta"):
-        st.session_state.step = 'basket_selection'
+    if st.button("⚙️ Alterar CEP / Raio ou Cesta"):
+        st.session_state.step = 'location_setup'
         st.rerun()
