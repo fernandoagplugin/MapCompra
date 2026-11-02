@@ -313,8 +313,45 @@ elif st.session_state.step == 'results':
     lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_cesta"])
     
     if not lojas_filtradas:
-        st.warning("⚠️ Nenhuma unidade encontrada neste raio de distância. Tente aumentar os quilômetros no passo anterior.")
+        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio na etapa anterior para ver as opções disponíveis.")
     else:
         # A primeira da lista é a vencedora (mais barata)
         vencedor = lojas_filtradas[0]
         demais_lojas = lojas_filtradas[1:]
+        
+        # Exibir Card Destaque (Menor Preço)
+        st.markdown(
+            f"""
+            <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
+                <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
+                <h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor['nome']}</h3>
+                <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
+                <div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor['preco_cesta']:.2f}</div>
+                <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor['nome']}).</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if demais_lojas:
+            st.markdown("---")
+            st.markdown("#### Demais Opções Disponíveis na Região:")
+            
+            # Exibir todas as outras unidades que passaram no filtro de raio
+            for loja in demais_lojas:
+                st.markdown(
+                    f"""
+                    <div class="card-box">
+                        <strong>🛒 {loja['nome']}</strong><br>
+                        <div class="address-text">📍 {loja['endereco']} ({loja['distancia_km']} km)</div>
+                        <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja['preco_cesta']:.2f}</span><br>
+                        <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja['nome']}).</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⚙️ Ajustar Raio ou Cesta"):
+        st.session_state.step = 'location_setup'
+        st.rerun()
