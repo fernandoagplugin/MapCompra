@@ -344,4 +344,83 @@ elif st.session_state.step == 'income':
 # ==========================================
 elif st.session_state.step == 'location_setup':
     st.markdown('<div class="main-title">Onde você está? 📍</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Defina o seu CEP e a distância máxima para a busca.</div>', unsafe_allow
+    st.markdown('<div class="sub-title">Defina o seu CEP e a distância máxima para a busca.</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="card-box">', unsafe_allow_html=True)
+    cep_input = st.text_input("Digite seu CEP ou Bairro:", value=st.session_state.user_cep)
+    
+    radius_input = st.slider(
+        "Raio máximo de distância (km):",
+        min_value=1,
+        max_value=20,
+        value=st.session_state.search_radius,
+        step=1
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    if st.button("Continuar para Escolha de Cesta ➔"):
+        st.session_state.user_cep = cep_input
+        st.session_state.search_radius = radius_input
+        st.session_state.step = 'basket_selection'
+        st.rerun()
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⬅️ Voltar"):
+        st.session_state.step = 'income'
+        st.rerun()
+
+# ==========================================
+# TELA 4: SELEÇÃO DO TIPO DE CESTA
+# ==========================================
+elif st.session_state.step == 'basket_selection':
+    st.markdown('<div class="main-title">Simulador de Cesta 🛍️</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Como prefere montar a sua compra hoje?</div>', unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="card-box">
+            <span class="badge-orange">🇧🇷 Padrão Oficial do Governo</span>
+            <h4 style="margin: 5px 0; color: #E53935;">Cesta Básica Nacional (13 Itens)</h4>
+            <p style="color: #666; font-size: 0.85rem;">Arroz, feijão, carne, óleo, leite, café, açúcar, pão, farinha, macarrão, tomate, batata e manteiga.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Selecionar Cesta Oficial (DIEESE)"):
+        st.session_state.basket_type = 'oficial'
+        st.session_state.step = 'results'
+        st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown("""
+        <div class="card-box">
+            <span class="badge-orange">⚙️ 100% Customizável</span>
+            <h4 style="margin: 5px 0; color: #E53935;">Cesta Personalizada</h4>
+            <p style="color: #666; font-size: 0.85rem;">Escolha itens e tamanhos no catálogo estendido (Limpeza, Higiene e mais).</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Montar Cesta Customizada"):
+        st.session_state.basket_type = 'custom'
+        if not st.session_state.custom_basket:
+            st.session_state.custom_basket = {}
+        st.session_state.step = 'custom_builder'
+        st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⬅️ Voltar"):
+        st.session_state.step = 'location_setup'
+        st.rerun()
+
+# ==========================================
+# TELA 5: MONTAGEM DA CESTA COMPACTA (CUSTOMIZADA)
+# ==========================================
+elif st.session_state.step == 'custom_builder':
+    st.markdown('<div class="main-title">Monte sua Cesta 🛒</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Escolha a opção de peso/tamanho e a quantidade:</div>', unsafe_allow_html=True)
+
+    categorias = list(CATALOGO_ESTENDIDO.keys())
+    tabs = st.tabs(categorias)
+
+    for i, cat in enumerate(categorias):
+        with tabs[i]:
+            for prod in CATALOGO_ESTENDIDO
