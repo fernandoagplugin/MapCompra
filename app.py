@@ -95,9 +95,12 @@ st.markdown("""
 
     .info-pagamento {
         font-size: 0.78rem;
-        color: #757575;
-        font-style: italic;
-        margin-top: 4px;
+        color: #555555;
+        margin-top: 6px;
+        background-color: #FAFAFA;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border-left: 3px solid #FF6F00;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -297,7 +300,7 @@ elif st.session_state.step == 'results':
                 <h3 style="margin: 5px 0; color: #1B5E20;">{vencedor['nome']}</h3>
                 <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
                 <div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor['preco_cesta']:.2f}</div>
-                <div class="info-pagamento">ℹ️ Consulte formas de pagamento diretamente com a rede.</div>
+                <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor['nome']}).</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -312,7 +315,7 @@ elif st.session_state.step == 'results':
                         <strong>{loja['nome']}</strong><br>
                         <div class="address-text">📍 {loja['endereco']} ({loja['distancia_km']} km)</div>
                         <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja['preco_cesta']:.2f}</span><br>
-                        <div class="info-pagamento">ℹ️ Consulte formas de pagamento diretamente com a rede.</div>
+                        <div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja['nome']}).</div>
                     </div>
                 """, unsafe_allow_html=True)
 
