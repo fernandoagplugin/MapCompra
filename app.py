@@ -145,6 +145,22 @@ LOJAS_ZN_DATABASE = [
     }
 ]
 
+ITENS_CESTA_OFICIAL = [
+    "🍚 Arroz (5 kg)",
+    "🫘 Feijão (4,5 kg)",
+    "🥩 Carne bovina (4,5 kg)",
+    "🥖 Pão francês (6 kg)",
+    "🥛 Leite longa vida (6 L)",
+    "🍅 Tomate (3 kg)",
+    "🥔 Batata (6 kg)",
+    "🍌 Banana (1,3 kg / 1 dúzia)",
+    "☕ Café em pó (500 g)",
+    "🌾 Farinha de trigo (1,5 kg)",
+    "🧈 Manteiga/Margarina (750 g)",
+    "🍬 Açúcar cristal (3 kg)",
+    "🛢️ Óleo de soja (900 ml)"
+]
+
 # 4. Estado da Sessão
 if 'step' not in st.session_state:
     st.session_state.step = 'onboarding'
@@ -278,8 +294,18 @@ elif st.session_state.step == 'location_setup':
 # ==========================================
 elif st.session_state.step == 'results':
     st.markdown('<div class="main-title">Comparativo Dinâmico 📍</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-title">Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="sub-title">Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>',
+        unsafe_allow_html=True
+    )
+
+    # NOVO: Lista resumida expansível com os itens considerados no cálculo
+    with st.expander("📋 Ver 13 itens inclusos nesta Cesta Padrão"):
+        for item in ITENS_CESTA_OFICIAL:
+            st.markdown(f"- {item}")
     
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # Filtrar lojas com base no raio escolhido
     lojas_filtradas = [loja for loja in LOJAS_ZN_DATABASE if loja["distancia_km"] <= st.session_state.search_radius]
     
