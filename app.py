@@ -85,6 +85,19 @@ st.markdown("""
         font-weight: 800;
         color: #2E7D32;
     }
+    
+    .address-text {
+        color: #555555;
+        font-size: 0.82rem;
+        margin-top: 4px;
+        margin-bottom: 6px;
+    }
+
+    .link-pagamento {
+        font-size: 0.78rem;
+        color: #1976D2;
+        text-decoration: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -96,7 +109,7 @@ if 'user_income' not in st.session_state:
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
 if 'user_cep' not in st.session_state:
-    st.session_state.user_cep = "02000-000" # Exemplo Zona Norte SP
+    st.session_state.user_cep = "02000-000"
 if 'search_radius' not in st.session_state:
     st.session_state.search_radius = 5
 
@@ -205,7 +218,7 @@ elif st.session_state.step == 'location_setup':
     )
     st.markdown('</div>', unsafe_allow_html=True)
     
-    if st.button("🔍 Buscar Menor Preço na Região"):
+    if st.button("🔍 Buscar Lojas na Região"):
         st.session_state.user_cep = cep_input
         st.session_state.search_radius = radius_input
         st.session_state.step = 'results'
@@ -217,38 +230,53 @@ elif st.session_state.step == 'location_setup':
         st.rerun()
 
 # ==========================================
-# TELA 4: RESULTADOS E COMPARAÇÃO DE PREÇOS
+# TELA 4: RESULTADOS E COMPARAÇÃO COMPLETA
 # ==========================================
 elif st.session_state.step == 'results':
-    st.markdown('<div class="main-title">Comparativo de Preços 📍</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sub-title">Cesta Oficial num raio de <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">Comparativo Completo 📍</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="sub-title">Exibindo <strong>todas</strong> as opções num raio de <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>', unsafe_allow_html=True)
     
-    # Destaque para o Mercado Mais Barato ajustado à região
-    st.markdown(f"""
+    # 1. Vencedor (Mais barato)
+    st.markdown("""
         <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
-            <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Melhor Preço Próximo</span>
-            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista (Zona Norte)</h3>
-            <p style="color: #555; font-size: 0.85rem; margin-bottom: 5px;">📍 a 2.1 km de distância • Aceita VR/VA</p>
-            <div class="price-tag">R$ 281,50 <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(Total da Cesta)</span></div>
+            <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
+            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista</h3>
+            <div class="address-text">📍 Av. Eng. Caetano Alvares, 5500 - Mandaqui (2.1 km)</div>
+            <div class="price-tag" style="margin-bottom: 6px;">R$ 281,50</div>
+            <a href="https://www.assai.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("#### Outras Opções na Região:")
+    st.markdown("#### Demais Opções Disponíveis na Região:")
     
+    # Opção 2
     st.markdown("""
         <div class="card-box">
-            <strong>Atacadão (Limão)</strong><br>
-            <span style="color: #666; font-size: 0.85rem;">📍 3.4 km • Aceita Cartão, Pix</span><br>
-            <span style="color: #E53935; font-weight: bold;">R$ 289,90</span>
+            <strong>Atacadão</strong><br>
+            <div class="address-text">📍 Av. Otaviano Alves de Lima, 1828 - Limão (3.4 km)</div>
+            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 289,90</span><br>
+            <a href="https://www.atacadao.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
         </div>
     """, unsafe_allow_html=True)
-    
+
+    # Opção 3
+    st.markdown("""
+        <div class="card-box">
+            <strong>Tenda Atacado</strong><br>
+            <div class="address-text">📍 Av. Inajar de Sousa, 3500 - Limão (4.1 km)</div>
+            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 295,00</span><br>
+            <a href="https://www.tendaatacado.com.br/nossas-lojas" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Opção 4
     st.markdown("""
         <div class="card-box">
             <strong>Sonda Supermercados</strong><br>
-            <span style="color: #666; font-size: 0.85rem;">📍 4.8 km • Aceita VR, Ticket</span><br>
-            <span style="color: #E53935; font-weight: bold;">R$ 312,00</span>
+            <div class="address-text">📍 R. Voluntários da Pátria, 3530 - Santana (4.8 km)</div>
+            <span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ 312,00</span><br>
+            <a href="https://www.sondadelivery.com.br/" target="_blank" class="link-pagamento">🔗 Consultar formas de pagamento oficiais</a>
         </div>
     """, unsafe_allow_html=True)
 
