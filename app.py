@@ -352,6 +352,6 @@ elif st.session_state.step == 'results':
                 )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("⚙️ Ajustar distância ou Cesta"):
+    if st.button("⚙️ Ajustar distância ou cesta"):
         st.session_state.step = 'location_setup'
         st.rerun()
