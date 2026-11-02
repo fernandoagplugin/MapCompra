@@ -105,14 +105,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Base de Dados Simulada
+# 3. Base de Dados Simulada (Unidades Reais da ZN-SP)
 LOJAS_ZN_DATABASE = [
     {
         "nome": "Supermercado Bergamini",
         "endereco": "Av. Luis Stamatis, 431 - Jaçanã",
         "distancia_km": 2.5,
         "preco_cesta": 278.90,
-        "fator_custom": 1.00 # Multiplicador de preço para cesta customizada
+        "fator_custom": 1.00
     },
     {
         "nome": "Assaí Atacadista",
@@ -167,26 +167,110 @@ ITENS_CESTA_OFICIAL = [
     "🛢️ Óleo de soja (900 ml)"
 ]
 
+# CATÁLOGO COM VARIAÇÃO DE PESO/EMBALAGEM
 CATALOGO_ESTENDIDO = {
     "Mercearia Básica": [
-        {"id": "arroz", "nome": "Arroz Tipo 1 (5kg)", "preco_medio": 28.90},
-        {"id": "feijao", "nome": "Feijão Carioca (1kg)", "preco_medio": 8.50},
-        {"id": "oleo", "nome": "Óleo de Soja (900ml)", "preco_medio": 6.80},
-        {"id": "acucar", "nome": "Açúcar Refinado (1kg)", "preco_medio": 4.50},
-        {"id": "cafe", "nome": "Café Torrado e Moído (500g)", "preco_medio": 18.90},
-        {"id": "macarrao", "nome": "Macarrão Esparguete (500g)", "preco_medio": 4.20},
+        {
+            "id": "arroz",
+            "nome": "Arroz Tipo 1",
+            "variacoes": {
+                "Pacote 1kg": 6.50,
+                "Pacote 5kg": 28.90
+            }
+        },
+        {
+            "id": "feijao",
+            "nome": "Feijão Carioca",
+            "variacoes": {
+                "Pacote 1kg": 8.50,
+                "Pacote 2kg": 16.20
+            }
+        },
+        {
+            "id": "oleo",
+            "nome": "Óleo de Soja",
+            "variacoes": {
+                "Garrafa 900ml": 6.80
+            }
+        },
+        {
+            "id": "acucar",
+            "nome": "Açúcar Refinado",
+            "variacoes": {
+                "Pacote 1kg": 4.50,
+                "Pacote 5kg": 21.00
+            }
+        },
+        {
+            "id": "cafe",
+            "nome": "Café Torrado e Moído",
+            "variacoes": {
+                "Embalagem 250g": 9.90,
+                "Embalagem 500g": 18.90
+            }
+        },
+        {
+            "id": "macarrao",
+            "nome": "Macarrão Esparguete",
+            "variacoes": {
+                "Pacote 500g": 4.20,
+                "Pacote 1kg": 7.90
+            }
+        }
     ],
     "Limpeza": [
-        {"id": "sabao_em_po", "nome": "Sabão em Pó (1kg)", "preco_medio": 14.90},
-        {"id": "detergente", "nome": "Detergente Líquido (500ml)", "preco_medio": 2.60},
-        {"id": "amaciante", "nome": "Amaciante Concentrado (1L)", "preco_medio": 16.50},
-        {"id": "desinfetante", "nome": "Desinfetante Multiuso (500ml)", "preco_medio": 5.90},
-        {"id": "papel_higienico", "nome": "Papel Higiénico (12 rolos)", "preco_medio": 19.90},
+        {
+            "id": "sabao_em_po",
+            "nome": "Sabão em Pó",
+            "variacoes": {
+                "Caixa 800g": 11.90,
+                "Caixa 1,6kg": 22.50,
+                "Saco 3kg": 39.90
+            }
+        },
+        {
+            "id": "detergente",
+            "nome": "Detergente Líquido",
+            "variacoes": {
+                "Frasco 500ml": 2.60
+            }
+        },
+        {
+            "id": "amaciante",
+            "nome": "Amaciante Concentrado",
+            "variacoes": {
+                "Frasco 500ml": 9.50,
+                "Frasco 1.5L": 24.90
+            }
+        },
+        {
+            "id": "papel_higienico",
+            "nome": "Papel Higiénico",
+            "variacoes": {
+                "Pacote 4 rolos": 7.50,
+                "Pacote 12 rolos": 19.90,
+                "Pacote 24 rolos": 36.90
+            }
+        }
     ],
     "Higiene Pessoal": [
-        {"id": "sabonete", "nome": "Sabonete em Barra (90g)", "preco_medio": 2.50},
-        {"id": "creme_dental", "nome": "Creme Dental (90g)", "preco_medio": 4.90},
-        {"id": "shampoo", "nome": "Champô Suave (350ml)", "preco_medio": 12.90},
+        {
+            "id": "sabonete",
+            "nome": "Sabonete em Barra",
+            "variacoes": {
+                "Unidade 85g": 2.50,
+                "Pack 6 unidades": 13.50
+            }
+        },
+        {
+            "id": "creme_dental",
+            "nome": "Creme Dental",
+            "variacoes": {
+                "Tubo 70g": 3.90,
+                "Tubo 90g": 4.90,
+                "Pack Triplo (3x90g)": 12.90
+            }
+        }
     ]
 }
 
@@ -198,7 +282,7 @@ if 'user_income' not in st.session_state:
 if 'basket_type' not in st.session_state:
     st.session_state.basket_type = None
 if 'custom_basket' not in st.session_state:
-    st.session_state.custom_basket = {}
+    st.session_state.custom_basket = {} # Formato: {(p_id, peso): {"qtd": x, "preco": y, "nome": name}}
 if 'user_cep' not in st.session_state:
     st.session_state.user_cep = "02300-000"
 if 'search_radius' not in st.session_state:
@@ -282,7 +366,7 @@ elif st.session_state.step == 'basket_selection':
         <div class="card-box">
             <span class="badge-orange">⚙️ 100% Customizável</span>
             <h4 style="margin: 5px 0; color: #E53935;">Cesta Personalizada</h4>
-            <p style="color: #666; font-size: 0.85rem;">Escolha itens do catálogo estendido (Limpeza, Higiene e mais produtos).</p>
+            <p style="color: #666; font-size: 0.85rem;">Escolha itens e tamanhos/pesos no catálogo estendido (Limpeza, Higiene e mais).</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -292,13 +376,12 @@ elif st.session_state.step == 'basket_selection':
         st.rerun()
 
 # ==========================================
-# TELA 3.A: MONTAGEM DA CESTA CUSTOMIZADA
+# TELA 3.A: MONTAGEM DA CESTA CUSTOMIZADA (COM SELEÇÃO DE PESO/OPÇÃO)
 # ==========================================
 elif st.session_state.step == 'custom_builder':
     st.markdown('<div class="main-title">Monte sua Cesta 🛒</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Escolha os produtos e quantidades desejadas:</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Selecione o produto, o tamanho/peso e a quantidade:</div>', unsafe_allow_html=True)
 
-    # Abas por categoria
     categorias = list(CATALOGO_ESTENDIDO.keys())
     tabs = st.tabs(categorias)
 
@@ -306,25 +389,39 @@ elif st.session_state.step == 'custom_builder':
         with tabs[i]:
             for prod in CATALOGO_ESTENDIDO[cat]:
                 p_id = prod["id"]
-                qtd_atual = st.session_state.custom_basket.get(p_id, 0)
+                p_nome = prod["nome"]
                 
-                col1, col2 = st.columns([3, 2])
-                with col1:
-                    st.markdown(f"**{prod['nome']}**")
-                    st.caption(f"Méd. R$ {prod['preco_medio']:.2f}")
-                with col2:
-                    nova_qtd = st.number_input(
-                        "Qtd:",
-                        min_value=0,
-                        max_value=20,
-                        value=qtd_atual,
-                        key=f"input_{p_id}"
-                    )
-                    st.session_state.custom_basket[p_id] = nova_qtd
+                st.markdown(f"### {p_nome}")
+                
+                # Para cada variação de peso/embalagem do mesmo produto
+                for peso_label, preco in prod["variacoes"].items():
+                    key_item = f"{p_id}_{peso_label}"
+                    qtd_atual = st.session_state.custom_basket.get(key_item, {}).get("qtd", 0)
+                    
+                    col1, col2 = st.columns([3, 2])
+                    with col1:
+                        st.markdown(f"**{peso_label}**")
+                        st.caption(f"Méd. R$ {preco:.2f}")
+                    with col2:
+                        nova_qtd = st.number_input(
+                            "Qtd:",
+                            min_value=0,
+                            max_value=20,
+                            value=qtd_atual,
+                            key=f"input_{key_item}"
+                        )
+                        if nova_qtd > 0:
+                            st.session_state.custom_basket[key_item] = {
+                                "nome": f"{p_nome} ({peso_label})",
+                                "qtd": nova_qtd,
+                                "preco_un": preco
+                            }
+                        elif key_item in st.session_state.custom_basket:
+                            del st.session_state.custom_basket[key_item]
+                st.markdown("---")
 
-    total_itens = sum(st.session_state.custom_basket.values())
-    st.markdown("---")
-    st.markdown(f"**Total de itens selecionados:** `{total_itens}`")
+    total_itens = sum(item["qtd"] for item in st.session_state.custom_basket.values())
+    st.markdown(f"**Total de pacotes/unidades:** `{total_itens}`")
 
     if total_itens > 0:
         if st.button("Avançar para Localização ➔"):
@@ -386,12 +483,9 @@ elif st.session_state.step == 'results':
             for item in ITENS_CESTA_OFICIAL:
                 st.markdown(f"- {item}")
     else:
-        with st.expander("📋 Ver produtos selecionados na sua Cesta Customizada"):
-            for cat, prods in CATALOGO_ESTENDIDO.items():
-                for p in prods:
-                    qtd = st.session_state.custom_basket.get(p["id"], 0)
-                    if qtd > 0:
-                        st.markdown(f"- {p['nome']} x {qtd}")
+        with st.expander("📋 Ver produtos e pesos selecionados na sua Cesta Customizada"):
+            for item_data in st.session_state.custom_basket.values():
+                st.markdown(f"- {item_data['nome']} x {item_data['qtd']}")
     
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -400,11 +494,7 @@ elif st.session_state.step == 'results':
 
     # Calcular o preço total de acordo com a cesta escolhida
     if st.session_state.basket_type == 'custom':
-        valor_base_custom = 0
-        for cat, prods in CATALOGO_ESTENDIDO.items():
-            for p in prods:
-                qtd = st.session_state.custom_basket.get(p["id"], 0)
-                valor_base_custom += p["preco_medio"] * qtd
+        valor_base_custom = sum(item["preco_un"] * item["qtd"] for item in st.session_state.custom_basket.values())
 
         for loja in lojas_filtradas:
             loja["preco_exibido"] = valor_base_custom * loja["fator_custom"]
