@@ -5,19 +5,14 @@ st.set_page_config(
     page_title="MapCompra 🛒",
     page_icon="🛒",
     layout="centered",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="collapsed"
 )
 
-# 2. CSS Personalizado (Simulador de Tela Mobile + Fundo Branco/Vermelho/Laranja)
-st.markdown(
-    """
+# 2. CSS Personalizado (Layout Smartphone + Cores Varejo)
+st.markdown("""
     <style>
-    /* Fundo geral da tela no desktop (cinza suave para destacar o "celular") */
-    .stApp {
-        background-color: #F0F2F5;
-    }
+    .stApp { background-color: #F0F2F5; }
     
-    /* Container principal simulando a tela de um smartphone */
     .block-container {
         max-width: 420px !important;
         background-color: #FFFFFF;
@@ -28,12 +23,10 @@ st.markdown(
         margin-bottom: 3rem;
     }
     
-    /* Esconder elementos padrão do Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Títulos */
     .main-title {
         color: #E53935;
         font-size: 1.8rem;
@@ -49,7 +42,6 @@ st.markdown(
         margin-bottom: 20px;
     }
 
-    /* Cards e Containers Brancos */
     .card-box {
         background-color: #FFFFFF;
         border: 1px solid #EEEEEE;
@@ -59,7 +51,6 @@ st.markdown(
         margin-bottom: 12px;
     }
     
-    /* Botões Principais (Gradiente Laranja para Vermelho) */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #FF6F00, #E53935);
         color: white;
@@ -78,7 +69,6 @@ st.markdown(
         color: white;
     }
 
-    /* Badge Laranja */
     .badge-orange {
         background-color: #FFF3E0;
         color: #E65100;
@@ -89,125 +79,147 @@ st.markdown(
         display: inline-block;
         margin-bottom: 6px;
     }
+    
+    .price-tag {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #2E7D32;
+    }
     </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # 3. Estado da Sessão
-if "step" not in st.session_state:
-  st.session_state.step = "onboarding"
-if "user_income" not in st.session_state:
-  st.session_state.user_income = None
-if "basket_type" not in st.session_state:
-  st.session_state.basket_type = None
+if 'step' not in st.session_state:
+    st.session_state.step = 'onboarding'
+if 'user_income' not in st.session_state:
+    st.session_state.user_income = None
+if 'basket_type' not in st.session_state:
+    st.session_state.basket_type = None
 
 # ==========================================
 # TELA 1: ONBOARDING & LOGIN
 # ==========================================
-if st.session_state.step == "onboarding":
-  st.markdown(
-      '<div class="main-title">MapCompra 🛒📍</div>', unsafe_allow_html=True
-  )
-  st.markdown(
-      '<div class="sub-title">Sua cesta básica pelo menor preço, nos'
-      " atacarejos mais próximos.</div>",
-      unsafe_allow_html=True,
-  )
-
-  st.markdown(
-      """
+if st.session_state.step == 'onboarding':
+    st.markdown('<div class="main-title">MapCompra 🛒📍</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Sua cesta básica pelo menor preço, nos atacarejos mais próximos.</div>', unsafe_allow_html=True)
+    
+    st.markdown("""
         <div style="text-align: center; margin: 20px 0;">
             <span style="font-size: 3.5rem;">🏬📍✨</span>
         </div>
-    """,
-      unsafe_allow_html=True,
-  )
+    """, unsafe_allow_html=True)
+    
+    if st.button("🌐 Entrar com Google"):
+        st.session_state.step = 'income'
+        st.rerun()
 
-  if st.button("🌐 Entrar com Google"):
-    st.session_state.step = "income"
-    st.rerun()
+    if st.button("🍎 Entrar com Apple"):
+        st.session_state.step = 'income'
+        st.rerun()
 
-  if st.button("🍎 Entrar com Apple"):
-    st.session_state.step = "income"
-    st.rerun()
-
-  st.markdown("<br>", unsafe_allow_html=True)
-  if st.button("Continuar sem Login (Convidado)"):
-    st.session_state.step = "income"
-    st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Continuar sem Login (Convidado)"):
+        st.session_state.step = 'income'
+        st.rerun()
 
 # ==========================================
 # TELA 2: CAPTURA DE RENDA (OPCIONAL)
 # ==========================================
-elif st.session_state.step == "income":
-  st.markdown(
-      '<div class="main-title">Perfil Rápido 📊</div>', unsafe_allow_html=True
-  )
-  st.markdown(
-      '<div class="sub-title">Qual a sua faixa de renda mensal? (100%'
-      " anónimo)</div>",
-      unsafe_allow_html=True,
-  )
-
-  st.markdown('<div class="card-box">', unsafe_allow_html=True)
-  income_option = st.radio(
-      "Selecione uma opção:",
-      [
-          "Até 2 salários mínimos (Até R$ 3.000)",
-          "De 2 a 4 salários mínimos (R$ 3.000 - R$ 6.000)",
-          "De 4 a 7 salários mínimos (R$ 6.000 - R$ 10.000)",
-          "Acima de 7 salários mínimos (Acima de R$ 10.000)",
-          "Prefiro não informar",
-      ],
-      index=4,
-  )
-  st.markdown("</div>", unsafe_allow_html=True)
-
-  if st.button("Avançar para Escolha de Cesta ➔"):
-    st.session_state.user_income = income_option
-    st.session_state.step = "basket_selection"
-    st.rerun()
+elif st.session_state.step == 'income':
+    st.markdown('<div class="main-title">Perfil Rápido 📊</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Qual a sua faixa de renda mensal? (100% anónimo)</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="card-box">', unsafe_allow_html=True)
+    income_option = st.radio(
+        "Selecione uma opção:",
+        [
+            "Até 2 salários mínimos (Até R$ 3.000)",
+            "De 2 a 4 salários mínimos (R$ 3.000 - R$ 6.000)",
+            "De 4 a 7 salários mínimos (R$ 6.000 - R$ 10.000)",
+            "Acima de 7 salários mínimos (Acima de R$ 10.000)",
+            "Prefiro não informar"
+        ],
+        index=4
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    if st.button("Avançar para Escolha de Cesta ➔"):
+        st.session_state.user_income = income_option
+        st.session_state.step = 'basket_selection'
+        st.rerun()
 
 # ==========================================
 # TELA 3: SELEÇÃO DO TIPO DE CESTA
 # ==========================================
-elif st.session_state.step == "basket_selection":
-  st.markdown(
-      '<div class="main-title">Simulador de Cesta 🛍️</div>',
-      unsafe_allow_html=True,
-  )
-  st.markdown(
-      '<div class="sub-title">Como prefere montar a sua compra hoje?</div>',
-      unsafe_allow_html=True,
-  )
-
-  st.markdown(
-      """
+elif st.session_state.step == 'basket_selection':
+    st.markdown('<div class="main-title">Simulador de Cesta 🛍️</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Como prefere montar a sua compra hoje?</div>', unsafe_allow_html=True)
+    
+    st.markdown("""
         <div class="card-box">
-            <span class="badge-orange">⚡ Rápido em 1-Clique</span>
-            <h4 style="margin: 5px 0; color: #E53935;">Cesta Básica Padrão</h4>
-            <p style="color: #666; font-size: 0.85rem;">13 itens essenciais de alimentação para a família.</p>
+            <span class="badge-orange">🇧🇷 Padrão Oficial do Governo</span>
+            <h4 style="margin: 5px 0; color: #E53935;">Cesta Básica Nacional (13 Itens)</h4>
+            <p style="color: #666; font-size: 0.85rem;">Arroz, feijão, carne, óleo, leite, café, açúcar, pão, farinha, macarrão, tomate, batata e manteiga.</p>
         </div>
-    """,
-      unsafe_allow_html=True,
-  )
-  if st.button("Simular Cesta Padrão"):
-    st.session_state.basket_type = "padrao"
-    st.success("Redirecionando para o mapa...")
+    """, unsafe_allow_html=True)
+    
+    if st.button("Simular Cesta Oficial"):
+        st.session_state.basket_type = 'oficial'
+        st.session_state.step = 'results'
+        st.rerun()
 
-  st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-  st.markdown(
-      """
+    st.markdown("""
         <div class="card-box">
             <span class="badge-orange">⚙️ 100% Customizável</span>
             <h4 style="margin: 5px 0; color: #E53935;">Cesta Personalizada</h4>
-            <p style="color: #666; font-size: 0.85rem;">Escolha itens do catálogo de 50 produtos (Limpeza, Carnes, etc.).</p>
+            <p style="color: #666; font-size: 0.85rem;">Escolha itens do catálogo estendido (Limpeza, Higiene e mais produtos).</p>
         </div>
-    """,
-      unsafe_allow_html=True,
-  )
-  if st.button("Montar Cesta Customizada"):
-    st.session_state.basket_type = "custom"
-    st.info("Em breve: Catálogo de 50 itens!")
+    """, unsafe_allow_html=True)
+    
+    if st.button("Montar Cesta Customizada"):
+        st.session_state.basket_type = 'custom'
+        st.info("Catálogo de 50 itens em desenvolvimento!")
+
+# ==========================================
+# TELA 4: RESULTADOS E COMPARAÇÃO DE PREÇOS
+# ==========================================
+elif st.session_state.step == 'results':
+    st.markdown('<div class="main-title">Comparativo de Preços 📍</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Cesta Básica Oficial (Decreto nº 399/1938) num raio de 5 km.</div>', unsafe_allow_html=True)
+    
+    # Destaque para o Mercado Mais Barato
+    st.markdown("""
+        <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
+            <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Melhor Preço Próximo</span>
+            <h3 style="margin: 5px 0; color: #1B5E20;">Assaí Atacadista (Pinheiros)</h3>
+            <p style="color: #555; font-size: 0.85rem; margin-bottom: 5px;">📍 a 2.4 km de distância • Aceita VR/VA</p>
+            <div class="price-tag">R$ 284,90 <span style="font-size: 0.8rem; color: #666; font-weight: normal;">(Total da Cesta)</span></div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("#### Outras Opções na Região:")
+    
+    # Outros mercados
+    st.markdown("""
+        <div class="card-box">
+            <strong>Carrefour Hipermercado</strong><br>
+            <span style="color: #666; font-size: 0.85rem;">📍 3.8 km • Aceita Pix, Ticket</span><br>
+            <span style="color: #E53935; font-weight: bold;">R$ 299,50</span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="card-box">
+            <strong>Pão de Açúcar</strong><br>
+            <span style="color: #666; font-size: 0.85rem;">📍 1.1 km • Aceita VR, Cartão</span><br>
+            <span style="color: #E53935; font-weight: bold;">R$ 325,00</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⬅️ Recomeçar / Alterar Cesta"):
+        st.session_state.step = 'basket_selection'
+        st.rerun()
