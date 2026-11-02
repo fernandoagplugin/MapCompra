@@ -102,12 +102,6 @@ st.markdown("""
         border-radius: 6px;
         border-left: 3px solid #FF6F00;
     }
-
-    /* Ajuste para alinhar os seletores de produtos na mesma linha */
-    .stSelectbox label, .stNumberInput label {
-        font-size: 0.75rem !important;
-        margin-bottom: 0px !important;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -173,7 +167,6 @@ ITENS_CESTA_OFICIAL = [
     "🛢️ Óleo de soja (900 ml)"
 ]
 
-# CATÁLOGO COM VARIAÇÃO DE PESO/EMBALAGEM
 CATALOGO_ESTENDIDO = {
     "Mercearia Básica": [
         {
@@ -378,7 +371,7 @@ elif st.session_state.step == 'basket_selection':
     
     if st.button("Montar Cesta Customizada"):
         st.session_state.basket_type = 'custom'
-        st.session_state.custom_basket = {}  # Limpa seleções anteriores para evitar erros
+        st.session_state.custom_basket = {}
         st.session_state.step = 'custom_builder'
         st.rerun()
 
@@ -399,7 +392,6 @@ elif st.session_state.step == 'custom_builder':
                 p_nome = prod["nome"]
                 lista_pesos = list(prod["variacoes"].keys())
                 
-                # Layout compacto em colunas: Nome (40%) | Peso/Opção (35%) | Quantidade (25%)
                 col_nome, col_peso, col_qtd = st.columns([2.2, 2.0, 1.5])
                 
                 with col_nome:
@@ -417,14 +409,16 @@ elif st.session_state.step == 'custom_builder':
 
                 with col_qtd:
                     key_item = f"{p_id}_{peso_sel}"
-                    qtd_existente = st.session_state.custom_basket.get(key_item, {}).get("qtd", 0) if isinstance(st.session_state.custom_basket.get(key_item), dict) else 0
+                    qtd_existente = 0
+                    if key_item in st.session_state.custom_basket and isinstance(st.session_state.custom_basket[key_item], dict):
+                        qtd_existente = st.session_state.custom_basket[key_item].get("qtd", 0)
                     
                     nova_qtd = st.number_input(
                         "Qtd",
                         min_value=0,
                         max_value=20,
                         value=qtd_existente,
-                        key=f"qtd_{p_id}",
+                        key=f"qtd_{key_item}",
                         label_visibility="collapsed"
                     )
 
@@ -439,7 +433,6 @@ elif st.session_state.step == 'custom_builder':
                         
                 st.markdown("<hr style='margin: 8px 0; border-top: 1px solid #f0f0f0;'>", unsafe_allow_html=True)
 
-    # Cálculo seguro do total de itens
     total_itens = 0
     for v in st.session_state.custom_basket.values():
         if isinstance(v, dict) and "qtd" in v:
@@ -496,12 +489,10 @@ elif st.session_state.step == 'location_setup':
 # ==========================================
 elif st.session_state.step == 'results':
     st.markdown('<div class="main-title">Comparativo Dinâmico 📍</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="sub-title">Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})</div>',
-        unsafe_allow_html=True
-    )
+    
+    sub_text = f"Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {st.session_state.user_cep})"
+    st.markdown(f'<div class="sub-title">{sub_text}</div>', unsafe_allow_html=True)
 
-    # Exibir detalhes da cesta selecionada
     if st.session_state.basket_type == 'oficial':
         with st.expander("📋 Ver 13 itens inclusos nesta Cesta Padrão (DIEESE)"):
             for item in ITENS_CESTA_OFICIAL:
@@ -514,10 +505,8 @@ elif st.session_state.step == 'results':
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Filtrar lojas com base no raio
     lojas_filtradas = [loja for loja in LOJAS_ZN_DATABASE if loja["distancia_km"] <= st.session_state.search_radius]
 
-    # Calcular o preço total de acordo com a cesta escolhida
     if st.session_state.basket_type == 'custom':
         valor_base_custom = sum(
             item["preco_un"] * item["qtd"] 
@@ -531,7 +520,6 @@ elif st.session_state.step == 'results':
         for loja in lojas_filtradas:
             loja["preco_exibido"] = loja["preco_cesta"]
     
-    # Ordenar por menor preço
     lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_exibido"])
     
     if not lojas_filtradas:
@@ -540,10 +528,33 @@ elif st.session_state.step == 'results':
         vencedor = lojas_filtradas[0]
         demais_lojas = lojas_filtradas[1:]
         
-        # Card Destaque
-        st.markdown(
-            f"""
-            <div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">
-                <span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>
-                <h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor['nome']}</h3>
-                <div class="address-text">📍 {vencedor['endereco']} ({vencedor['distancia_km']} km)</div>
+        card_vencedor_html = (
+            f'<div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">'
+            f'<span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>'
+            f'<h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor["nome"]}</h3>'
+            f'<div class="address-text">📍 {vencedor["endereco"]} ({vencedor["distancia_km"]} km)</div>'
+            f'<div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor["preco_exibido"]:.2f}</div>'
+            f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor["nome"]}).</div>'
+            f'</div>'
+        )
+        st.markdown(card_vencedor_html, unsafe_allow_html=True)
+
+        if demais_lojas:
+            st.markdown("---")
+            st.markdown("#### Demais Opções Disponíveis na Região:")
+            
+            for loja in demais_lojas:
+                card_loja_html = (
+                    f'<div class="card-box">'
+                    f'<strong>🛒 {loja["nome"]}</strong><br>'
+                    f'<div class="address-text">📍 {loja["endereco"]} ({loja["distancia_km"]} km)</div>'
+                    f'<span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja["preco_exibido"]:.2f}</span><br>'
+                    f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja["nome"]}).</div>'
+                    f'</div>'
+                )
+                st.markdown(card_loja_html, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⚙️ Ajustar Raio ou Cesta"):
+        st.session_state.step = 'location_setup'
+        st.rerun()
