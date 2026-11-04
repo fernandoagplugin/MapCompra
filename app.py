@@ -106,14 +106,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Função de Integração Real com a API do ViaCEP
+# 3. Função com Cache e Tratamento de Erros Robusto para o ViaCEP
+@st.cache_data(show_spinner=False)
 def consultar_viacep(cep_string):
     cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
     if len(cep_limpo) != 8:
         return None
     try:
         url = f"https://viacep.com.br/ws/{cep_limpo}/json/"
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=3)
         if response.status_code == 200:
             data = response.json()
             if "erro" not in data:
@@ -124,8 +125,394 @@ def consultar_viacep(cep_string):
 
 # 4. Gerador Dinâmico de Atacarejos por Região Nacional
 def obter_lojas_por_regiao(dados_cep):
-    bairro = dados_cep.get("bairro") or "Centro"
-    cidade = dados_cep.get("localidade") or "São Paulo"
-    uf = dados_cep.get("uf") or "SP"
+    if not dados_cep:
+        bairro = "Centro"
+        cidade = "São Paulo"
+        uf = "SP"
+    else:
+        bairro = dados_cep.get("bairro") or "Centro"
+        cidade = dados_cep.get("localidade") or "São Paulo"
+        uf = dados_cep.get("uf") or "SP"
     
-    # Red
+    return [
+        {
+            "nome": f"Assaí Atacadista - {bairro}",
+            "endereco": f"Av. Principal do Bairro, 100 - {bairro}, {cidade} - {uf}",
+            "distancia_km": 1.8,
+            "preco_cesta": 278.90,
+            "fator_custom": 0.98
+        },
+        {
+            "nome": f"Atacadão - {cidade}",
+            "endereco": f"Rodovia Regional, Km 12 - {cidade} - {uf}",
+            "distancia_km": 3.4,
+            "preco_cesta": 281.50,
+            "fator_custom": 0.96
+        },
+        {
+            "nome": f"Supermercado Local - {bairro}",
+            "endereco": f"Rua do Comércio, 431 - {bairro}, {cidade} - {uf}",
+            "distancia_km": 2.5,
+            "preco_cesta": 289.00,
+            "fator_custom": 1.00
+        },
+        {
+            "nome": f"Tenda Atacado - {cidade}",
+            "endereco": f"Av. das Nações, 5500 - {cidade} - {uf}",
+            "distancia_km": 5.2,
+            "preco_cesta": 295.00,
+            "fator_custom": 0.99
+        },
+        {
+            "nome": f"Rede Regional Premium - {cidade}",
+            "endereco": f"Av. Central, 1200 - {cidade} - {uf}",
+            "distancia_km": 6.8,
+            "preco_cesta": 312.00,
+            "fator_custom": 1.08
+        }
+    ]
+
+# 5. Dados dos Produtos
+ITENS_CESTA_OFICIAL = [
+    "🍚 Arroz (5 kg)",
+    "🫘 Feijão (4,5 kg)",
+    "🥩 Carne bovina (4,5 kg)",
+    "🥖 Pão francês (6 kg)",
+    "🥛 Leite longa vida (6 L)",
+    "🍅 Tomate (3 kg)",
+    "🥔 Batata (6 kg)",
+    "🍌 Banana (1,3 kg / 1 dúzia)",
+    "☕ Café em pó (500 g)",
+    "🌾 Farinha de trigo (1,5 kg)",
+    "🧈 Manteiga/Margarina (750 g)",
+    "🍬 Açúcar cristal (3 kg)",
+    "🛢️ Óleo de soja (900 ml)"
+]
+
+CATALOGO_ESTENDIDO = {
+    "Mercearia Básica": [
+        {
+            "id": "arroz",
+            "nome": "Arroz Tipo 1",
+            "variacoes": {"Pacote 1kg": 6.50, "Pacote 5kg": 28.90}
+        },
+        {
+            "id": "feijao",
+            "nome": "Feijão Carioca",
+            "variacoes": {"Pacote 1kg": 8.50, "Pacote 2kg": 16.20}
+        },
+        {
+            "id": "oleo",
+            "nome": "Óleo de Soja",
+            "variacoes": {"Garrafa 900ml": 6.80}
+        },
+        {
+            "id": "acucar",
+            "nome": "Açúcar Refinado",
+            "variacoes": {"Pacote 1kg": 4.50, "Pacote 5kg": 21.00}
+        },
+        {
+            "id": "cafe",
+            "nome": "Café Torrado e Moído",
+            "variacoes": {"Embalagem 250g": 9.90, "Embalagem 500g": 18.90}
+        },
+        {
+            "id": "macarrao",
+            "nome": "Macarrão Esparguete",
+            "variacoes": {"Pacote 500g": 4.20, "Pacote 1kg": 7.90}
+        }
+    ],
+    "Limpeza": [
+        {
+            "id": "sabao_em_po",
+            "nome": "Sabão em Pó",
+            "variacoes": {"Caixa 800g": 11.90, "Caixa 1,6kg": 22.50, "Saco 3kg": 39.90}
+        },
+        {
+            "id": "detergente",
+            "nome": "Detergente Líquido",
+            "variacoes": {"Frasco 500ml": 2.60}
+        },
+        {
+            "id": "amaciante",
+            "nome": "Amaciante Concentrado",
+            "variacoes": {"Frasco 500ml": 9.50, "Frasco 1.5L": 24.90}
+        },
+        {
+            "id": "papel_higienico",
+            "nome": "Papel Higiénico",
+            "variacoes": {"Pacote 4 rolos": 7.50, "Pacote 12 rolos": 19.90, "Pacote 24 rolos": 36.90}
+        }
+    ],
+    "Higiene Pessoal": [
+        {
+            "id": "sabonete",
+            "nome": "Sabonete em Barra",
+            "variacoes": {"Unidade 85g": 2.50, "Pack 6 unidades": 13.50}
+        },
+        {
+            "id": "creme_dental",
+            "nome": "Creme Dental",
+            "variacoes": {"Tubo 70g": 3.90, "Tubo 90g": 4.90, "Pack Triplo (3x90g)": 12.90}
+        }
+    ]
+}
+
+# 6. Estado da Sessão
+if 'step' not in st.session_state:
+    st.session_state.step = 'location_setup'
+if 'basket_type' not in st.session_state:
+    st.session_state.basket_type = None
+if 'custom_basket' not in st.session_state:
+    st.session_state.custom_basket = {}
+if 'user_cep' not in st.session_state:
+    st.session_state.user_cep = "02300000"
+if 'dados_endereco' not in st.session_state:
+    st.session_state.dados_endereco = None
+if 'search_radius' not in st.session_state:
+    st.session_state.search_radius = 5
+
+# ==========================================
+# TELA 1: CONFIGURAÇÃO DE LOCALIZAÇÃO (VIA CEP)
+# ==========================================
+if st.session_state.step == 'location_setup':
+    st.markdown('<div class="main-title">MapCompra 🛒📍</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Encontre o menor preço nos atacarejos de qualquer região do Brasil.</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="card-box">', unsafe_allow_html=True)
+    cep_input = st.text_input("Digite seu CEP (apenas números):", value=st.session_state.user_cep)
+    
+    # Validação segura com cache e tratamento de exceções
+    if cep_input:
+        info_cep = consultar_viacep(cep_input)
+        if info_cep:
+            st.session_state.dados_endereco = info_cep
+            st.success(f"📍 **Localizado:** {info_cep.get('bairro', 'Centro')} - {info_cep.get('localidade')}/{info_cep.get('uf')}")
+        else:
+            st.warning("⚠️ Insira um CEP válido de 8 dígitos para localizar a região.")
+            st.session_state.dados_endereco = None
+            
+    radius_input = st.slider(
+        "Raio máximo de distância (km):",
+        min_value=1,
+        max_value=20,
+        value=st.session_state.search_radius,
+        step=1
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    if st.button("Continuar para Escolha de Cesta ➔"):
+        st.session_state.user_cep = cep_input
+        st.session_state.search_radius = radius_input
+        st.session_state.step = 'basket_selection'
+        st.rerun()
+
+# ==========================================
+# TELA 2: SELEÇÃO DO TIPO DE CESTA
+# ==========================================
+elif st.session_state.step == 'basket_selection':
+    st.markdown('<div class="main-title">Simulador de Cesta 🛍️</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Como prefere montar a sua compra hoje?</div>', unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="card-box">
+            <span class="badge-orange">🇧🇷 Padrão Oficial do Governo</span>
+            <h4 style="margin: 5px 0; color: #E53935;">Cesta Básica Nacional (13 Itens)</h4>
+            <p style="color: #666; font-size: 0.85rem;">Arroz, feijão, carne, óleo, leite, café, açúcar, pão, farinha, macarrão, tomate, batata e manteiga.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Selecionar Cesta Oficial (DIEESE)"):
+        st.session_state.basket_type = 'oficial'
+        st.session_state.step = 'results'
+        st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown("""
+        <div class="card-box">
+            <span class="badge-orange">⚙️ 100% Customizável</span>
+            <h4 style="margin: 5px 0; color: #E53935;">Cesta Personalizada</h4>
+            <p style="color: #666; font-size: 0.85rem;">Escolha itens e tamanhos no catálogo estendido (Limpeza, Higiene e mais).</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Montar Cesta Customizada"):
+        st.session_state.basket_type = 'custom'
+        if not st.session_state.custom_basket:
+            st.session_state.custom_basket = {}
+        st.session_state.step = 'custom_builder'
+        st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("⬅️ Alterar CEP/Raio"):
+        st.session_state.step = 'location_setup'
+        st.rerun()
+
+# ==========================================
+# TELA 3: MONTAGEM DA CESTA COMPACTA (CUSTOMIZADA)
+# ==========================================
+elif st.session_state.step == 'custom_builder':
+    st.markdown('<div class="main-title">Monte sua Cesta 🛒</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Escolha a opção de peso/tamanho e a quantidade:</div>', unsafe_allow_html=True)
+
+    categorias = list(CATALOGO_ESTENDIDO.keys())
+    tabs = st.tabs(categorias)
+
+    for i, cat in enumerate(categorias):
+        with tabs[i]:
+            for prod in CATALOGO_ESTENDIDO[cat]:
+                p_id = prod["id"]
+                p_nome = prod["nome"]
+                lista_pesos = list(prod["variacoes"].keys())
+                
+                col_nome, col_peso, col_qtd = st.columns([2.2, 2.0, 1.5])
+                
+                with col_nome:
+                    st.markdown(f"**{p_nome}**")
+                
+                with col_peso:
+                    peso_sel = st.selectbox(
+                        "Opção",
+                        options=lista_pesos,
+                        key=f"sel_{p_id}",
+                        label_visibility="collapsed"
+                    )
+                    preco_sel = prod["variacoes"][peso_sel]
+                    st.caption(f"R$ {preco_sel:.2f}")
+
+                with col_qtd:
+                    key_item = f"{p_id}_{peso_sel}"
+                    qtd_existente = 0
+                    if key_item in st.session_state.custom_basket and isinstance(st.session_state.custom_basket[key_item], dict):
+                        qtd_existente = st.session_state.custom_basket[key_item].get("qtd", 0)
+                    
+                    nova_qtd = st.number_input(
+                        "Qtd",
+                        min_value=0,
+                        max_value=20,
+                        value=qtd_existente,
+                        key=f"qtd_{key_item}",
+                        label_visibility="collapsed"
+                    )
+
+                    if nova_qtd > 0:
+                        st.session_state.custom_basket[key_item] = {
+                            "nome": f"{p_nome} ({peso_sel})",
+                            "qtd": nova_qtd,
+                            "preco_un": preco_sel
+                        }
+                    elif key_item in st.session_state.custom_basket:
+                        del st.session_state.custom_basket[key_item]
+                        
+                st.markdown("<hr style='margin: 8px 0; border-top: 1px solid #f0f0f0;'>", unsafe_allow_html=True)
+
+    total_itens = 0
+    for v in st.session_state.custom_basket.values():
+        if isinstance(v, dict) and "qtd" in v:
+            total_itens += v["qtd"]
+
+    st.markdown(f"**Total de pacotes/unidades:** `{total_itens}`")
+
+    if total_itens > 0:
+        if st.button("Ver Comparativo de Preços ➔"):
+            st.session_state.step = 'results'
+            st.rerun()
+    else:
+        st.info("Adicione pelo menos 1 item para continuar.")
+
+    if st.button("⬅️ Voltar"):
+        st.session_state.step = 'basket_selection'
+        st.rerun()
+
+# ==========================================
+# TELA 4: RESULTADOS E COMPARAÇÃO DINÂMICA
+# ==========================================
+elif st.session_state.step == 'results':
+    st.markdown('<div class="main-title">Comparativo Dinâmico 📍</div>', unsafe_allow_html=True)
+    
+    end_info = st.session_state.dados_endereco or {}
+    ref_local = f"{end_info.get('bairro', 'Região')} - {end_info.get('localidade', 'SP')}" if end_info else st.session_state.user_cep
+    
+    sub_text = f"Lojas num raio de até <strong>{st.session_state.search_radius} km</strong> (Ref: {ref_local})"
+    st.markdown(f'<div class="sub-title">{sub_text}</div>', unsafe_allow_html=True)
+
+    if st.session_state.basket_type == 'oficial':
+        with st.expander("📋 Ver 13 itens inclusos nesta Cesta Padrão (DIEESE)"):
+            for item in ITENS_CESTA_OFICIAL:
+                st.markdown(f"- {item}")
+    else:
+        with st.expander("📋 Ver produtos e pesos selecionados na sua Cesta Customizada"):
+            for item_data in st.session_state.custom_basket.values():
+                if isinstance(item_data, dict) and "nome" in item_data:
+                    st.markdown(f"- {item_data['nome']} x {item_data['qtd']}")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    base_lojas = obter_lojas_por_regiao(end_info)
+    lojas_filtradas = [loja for loja in base_lojas if loja["distancia_km"] <= st.session_state.search_radius]
+
+    if st.session_state.basket_type == 'custom':
+        valor_base_custom = sum(
+            item["preco_un"] * item["qtd"] 
+            for item in st.session_state.custom_basket.values() 
+            if isinstance(item, dict) and "preco_un" in item
+        )
+
+        for loja in lojas_filtradas:
+            loja["preco_exibido"] = valor_base_custom * loja["fator_custom"]
+    else:
+        for loja in lojas_filtradas:
+            loja["preco_exibido"] = loja["preco_cesta"]
+    
+    lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_exibido"])
+    
+    if not lojas_filtradas:
+        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente alterar o raio ou o CEP abaixo.")
+    else:
+        vencedor = lojas_filtradas[0]
+        demais_lojas = lojas_filtradas[1:]
+        
+        card_vencedor_html = (
+            f'<div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">'
+            f'<span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>'
+            f'<h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor["nome"]}</h3>'
+            f'<div class="address-text">📍 {vencedor["endereco"]} ({vencedor["distancia_km"]} km)</div>'
+            f'<div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor["preco_exibido"]:.2f}</div>'
+            f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor["nome"]}).</div>'
+            f'</div>'
+        )
+        st.markdown(card_vencedor_html, unsafe_allow_html=True)
+
+        if demais_lojas:
+            st.markdown("---")
+            st.markdown("#### Demais Opções Disponíveis na Região:")
+            
+            for loja in demais_lojas:
+                card_loja_html = (
+                    f'<div class="card-box">'
+                    f'<strong>🛒 {loja["nome"]}</strong><br>'
+                    f'<div class="address-text">📍 {loja["endereco"]} ({loja["distancia_km"]} km)</div>'
+                    f'<span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja["preco_exibido"]:.2f}</span><br>'
+                    f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja["nome"]}).</div>'
+                    f'</div>'
+                )
+                st.markdown(card_loja_html, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button("📍 Alterar CEP/Raio"):
+            st.session_state.step = 'location_setup'
+            st.rerun()
+            
+    with col_btn2:
+        texto_botao = "✏️ Alterar Itens" if st.session_state.basket_type == 'custom' else "🛒 Mudar Cesta"
+        if st.button(texto_botao):
+            if st.session_state.basket_type == 'custom':
+                st.session_state.step = 'custom_builder'
+            else:
+                st.session_state.step = 'basket_selection'
+            st.rerun()
