@@ -107,7 +107,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Funções de Integração Geográfica e Lojas Reais
+# 3. Funções de Integração Geográfica Limpa
 @st.cache_data(show_spinner=False)
 def consultar_viacep(cep_string):
     cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
@@ -191,7 +191,6 @@ def gerar_lojas_inteligentes(cep, raio_busca):
                 if dist <= raio_busca:
                     rua = tags.get('addr:street')
                     num = tags.get('addr:housenumber')
-                    bairro_tag = tags.get('addr:suburb') or (dados_cep.get('bairro') if dados_cep else '')
                     cidade_tag = dados_cep.get('localidade', 'Brasil') if dados_cep else 'Brasil'
                     uf_tag = dados_cep.get('uf', '') if dados_cep else ''
                     
@@ -199,12 +198,10 @@ def gerar_lojas_inteligentes(cep, raio_busca):
                     if rua:
                         rua_str = f"{rua}, {num}" if num else rua
                         partes_endereco.append(rua_str)
-                    if bairro_tag:
-                        partes_endereco.append(bairro_tag)
                     if cidade_tag and uf_tag:
                         partes_endereco.append(f"{cidade_tag} - {uf_tag}")
                     
-                    endereco_real = " - ".join(partes_endereco) if partes_endereco else (dados_cep.get('logradouro', 'Endereço na região') if dados_cep else 'Endereço na região')
+                    endereco_real = " - ".join(partes_endereco) if partes_endereco else (f"{cidade_tag} - {uf_tag}")
 
                     preco_base = 275.00 + (dist * 2.0)
                     lojas_formatadas.append({
@@ -215,30 +212,29 @@ def gerar_lojas_inteligentes(cep, raio_busca):
                         "fator_custom": 0.98 + (hash(nome) % 10) / 100
                     })
                     
+    # Fallback limpo baseada estritamente na cidade/estado real obtida pelo ViaCEP (sem injetar o bairro do utilizador à força)
     if not lojas_formatadas and dados_cep:
         cidade = dados_cep.get('localidade', 'São Paulo')
-        bairro = dados_cep.get('bairro', 'Centro')
         uf = dados_cep.get('uf', 'SP')
-        logradouro = dados_cep.get('logradouro', 'Av. Principal')
         
         lojas_formatadas = [
             {
                 "nome": "Assaí Atacadista",
-                "endereco": f"{logradouro} - {bairro}, {cidade} - {uf}",
+                "endereco": f"Unidade Regional - {cidade} - {uf}",
                 "distancia_km": 1.8,
                 "preco_cesta": 278.90,
                 "fator_custom": 0.98
             },
             {
                 "nome": "Atacadão",
-                "endereco": f"Via de Acesso Regional - {bairro}, {cidade} - {uf}",
+                "endereco": f"Centro de Distribuição / Loja - {cidade} - {uf}",
                 "distancia_km": 3.4,
                 "preco_cesta": 281.50,
                 "fator_custom": 0.96
             },
             {
-                "nome": f"Supermercado {bairro}",
-                "endereco": f"Rua Comercial Local - {bairro}, {cidade} - {uf}",
+                "nome": "Supermercado Local",
+                "endereco": f"Área Comercial - {cidade} - {uf}",
                 "distancia_km": 2.5,
                 "preco_cesta": 289.00,
                 "fator_custom": 1.00
@@ -278,7 +274,7 @@ CATALOGO_ESTENDIDO = {
         {"id": "sabao_em_po", "nome": "Sabão em Pó", "variacoes": {"Caixa 800g": 11.90, "Caixa 1,6kg": 22.50, "Saco 3kg": 39.90}},
         {"id": "detergente", "nome": "Detergente Líquido", "variacoes": {"Frasco 500ml": 2.60}},
         {"id": "amaciante", "nome": "Amaciante Concentrado", "variacoes": {"Frasco 500ml": 9.50, "Frasco 1.5L": 24.90}},
-        {"id": "papel_higienico", "nome": "Pacote Papel Higiénico", "variacoes": {"Pacote 4 rolos": 7.50, "Pacote 12 rolos": 19.90, "Pacote 24 rolos": 36.90}}
+        {"id": "papel_higienico", "nome": "Papel Higiénico", "variacoes": {"Pacote 4 rolos": 7.50, "Pacote 12 rolos": 19.90, "Pacote 24 rolos": 36.90}}
     ],
     "Higiene Pessoal": [
         {"id": "sabonete", "nome": "Sabonete em Barra", "variacoes": {"Unidade 85g": 2.50, "Pack 6 unidades": 13.50}},
@@ -476,7 +472,6 @@ elif st.session_state.step == 'results':
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Chamada corrigida e segura recolhendo apenas a lista de lojas
     base_lojas, _ = gerar_lojas_inteligentes(st.session_state.user_cep, st.session_state.search_radius)
     lojas_filtradas = [loja for loja in base_lojas if loja["distancia_km"] <= st.session_state.search_radius]
 
