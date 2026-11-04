@@ -107,7 +107,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Funções de Integração Geográfica e Extração de Endereços Reais
+# 3. Funções de Integração Geográfica e Lojas Reais
 @st.cache_data(show_spinner=False)
 def consultar_viacep(cep_string):
     cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
@@ -180,9 +180,8 @@ def gerar_lojas_inteligentes(cep, raio_busca):
         for el in elementos:
             tags = el.get('tags', {})
             nome = tags.get('name')
-            
             if not nome:
-                continue # Ignora locais sem nome mapeado para evitar poluição
+                continue
                 
             el_lat = el.get('lat') or el.get('center', {}).get('lat')
             el_lon = el.get('lon') or el.get('center', {}).get('lon')
@@ -190,14 +189,12 @@ def gerar_lojas_inteligentes(cep, raio_busca):
             if el_lat and el_lon:
                 dist = calcular_distancia_haversine(lat, lon, el_lat, el_lon)
                 if dist <= raio_busca:
-                    # Extração rigorosa de tags reais do OpenStreetMap
                     rua = tags.get('addr:street')
                     num = tags.get('addr:housenumber')
                     bairro_tag = tags.get('addr:suburb') or (dados_cep.get('bairro') if dados_cep else '')
                     cidade_tag = dados_cep.get('localidade', 'Brasil') if dados_cep else 'Brasil'
                     uf_tag = dados_cep.get('uf', '') if dados_cep else ''
                     
-                    # Monta o endereço apenas com o que existe de real nos dados
                     partes_endereco = []
                     if rua:
                         rua_str = f"{rua}, {num}" if num else rua
@@ -218,7 +215,6 @@ def gerar_lojas_inteligentes(cep, raio_busca):
                         "fator_custom": 0.98 + (hash(nome) % 10) / 100
                     })
                     
-    # Se o mapa não retornar estabelecimentos nomeados na exata rua, utiliza fallback com base real do CEP consultado
     if not lojas_formatadas and dados_cep:
         cidade = dados_cep.get('localidade', 'São Paulo')
         bairro = dados_cep.get('bairro', 'Centro')
@@ -228,7 +224,7 @@ def gerar_lojas_inteligentes(cep, raio_busca):
         lojas_formatadas = [
             {
                 "nome": "Assaí Atacadista",
-                "endereco": f"{logradouro}, s/n - {bairro}, {cidade} - {uf}",
+                "endereco": f"{logradouro} - {bairro}, {cidade} - {uf}",
                 "distancia_km": 1.8,
                 "preco_cesta": 278.90,
                 "fator_custom": 0.98
@@ -242,14 +238,13 @@ def gerar_lojas_inteligentes(cep, raio_busca):
             },
             {
                 "nome": f"Supermercado {bairro}",
-                "endereco": f"Rua Principal do Comércio - {bairro}, {cidade} - {uf}",
+                "endereco": f"Rua Comercial Local - {bairro}, {cidade} - {uf}",
                 "distancia_km": 2.5,
                 "preco_cesta": 289.00,
                 "fator_custom": 1.00
             }
         ]
         
-    # Ordenar por proximidade/relevância
     lojas_formatadas = sorted(lojas_formatadas, key=lambda x: x["distancia_km"])
     return lojas_formatadas, dados_cep
 
@@ -481,4 +476,71 @@ elif st.session_state.step == 'results':
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    base_lojas,
+    # Chamada corrigida e segura recolhendo apenas a lista de lojas
+    base_lojas, _ = gerar_lojas_inteligentes(st.session_state.user_cep, st.session_state.search_radius)
+    lojas_filtradas = [loja for loja in base_lojas if loja["distancia_km"] <= st.session_state.search_radius]
+
+    if st.session_state.basket_type == 'custom':
+        valor_base_custom = sum(
+            item["preco_un"] * item["qtd"] 
+            for item in st.session_state.custom_basket.values() 
+            if isinstance(item, dict) and "preco_un" in item
+        )
+
+        for loja in lojas_filtradas:
+            loja["preco_exibido"] = valor_base_custom * loja["fator_custom"]
+    else:
+        for loja in lojas_filtradas:
+            loja["preco_exibido"] = loja["preco_cesta"]
+    
+    lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_exibido"])
+    
+    if not lojas_filtradas:
+        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio de busca.")
+    else:
+        vencedor = lojas_filtradas[0]
+        demais_lojas = lojas_filtradas[1:]
+        
+        card_vencedor_html = (
+            f'<div class="card-box" style="border: 2px solid #2E7D32; background-color: #F1F8E9;">'
+            f'<span class="badge-orange" style="background-color: #C8E6C9; color: #2E7D32;">🏆 Menor Preço Total</span>'
+            f'<h3 style="margin: 5px 0; color: #1B5E20;">🛒 {vencedor["nome"]}</h3>'
+            f'<div class="address-text">📍 {vencedor["endereco"]} ({vencedor["distancia_km"]} km)</div>'
+            f'<div class="price-tag" style="margin-bottom: 6px;">R$ {vencedor["preco_exibido"]:.2f}</div>'
+            f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({vencedor["nome"]}).</div>'
+            f'</div>'
+        )
+        st.markdown(card_vencedor_html, unsafe_allow_html=True)
+
+        if demais_lojas:
+            st.markdown("---")
+            st.markdown("#### Demais Opções Disponíveis na Região:")
+            
+            for loja in demais_lojas:
+                card_loja_html = (
+                    f'<div class="card-box">'
+                    f'<strong>🛒 {loja["nome"]}</strong><br>'
+                    f'<div class="address-text">📍 {loja["endereco"]} ({loja["distancia_km"]} km)</div>'
+                    f'<span style="color: #E53935; font-weight: bold; font-size: 1.05rem;">R$ {loja["preco_exibido"]:.2f}</span><br>'
+                    f'<div class="info-pagamento">💳🎫 Consulte formas de pagamento com a rede ({loja["nome"]}).</div>'
+                    f'</div>'
+                )
+                st.markdown(card_loja_html, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button("📍 Alterar CEP/Raio"):
+            st.session_state.step = 'location_setup'
+            st.rerun()
+            
+    with col_btn2:
+        texto_botao = "✏️ Alterar Itens" if st.session_state.basket_type == 'custom' else "🛒 Mudar Cesta"
+        if st.button(texto_botao):
+            if st.session_state.basket_type == 'custom':
+                st.session_state.step = 'custom_builder'
+            else:
+                st.session_state.step = 'basket_selection'
+            st.rerun()
