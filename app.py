@@ -107,7 +107,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Base de Dados Oficial com Unidades e Endereços Reais Fixos (Com Coordenadas para Cálculo Haversine)
+# 3. Base de Dados Oficial com Unidades e Endereços Reais Fixos
 REDES_SUPERMERCADOS_REAIS = [
     {
         "nome": "Supermercado Bergamini",
@@ -153,7 +153,7 @@ REDES_SUPERMERCADOS_REAIS = [
     }
 ]
 
-# Funções de Apoio Geográfico (ViaCEP + Nominatim + Haversine)
+# Funções de Apoio Geográfico Robustas (ViaCEP + Nominatim por Texto Completo + Haversine)
 @st.cache_data(show_spinner=False)
 def consultar_viacep(cep_string):
     cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
@@ -171,19 +171,45 @@ def consultar_viacep(cep_string):
     return None
 
 @st.cache_data(show_spinner=False)
-def obter_coordenadas(cep_string):
-    cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
-    try:
-        url = f"https://nominatim.openstreetmap.org/search?postalcode={cep_limpo}&country=Brazil&format=json"
-        headers = {'User-Agent': 'MapCompraApp/1.0'}
-        response = requests.get(url, headers=headers, timeout=4)
-        if response.status_code == 200:
-            data = response.json()
-            if data:
-                return float(data[0]['lat']), float(data[0]['lon'])
-    except Exception:
-        pass
-    return None, None
+def obter_coordenadas_precisas(cep_string):
+    dados_cep = consultar_viacep(cep_string)
+    if not dados_cep:
+        return None, None, None
+        
+    logradouro = dados_cep.get('logradouro', '')
+    bairro = dados_cep.get('bairro', '')
+    cidade = dados_cep.get('localidade', 'São Paulo')
+    uf = dados_cep.get('uf', 'SP')
+    
+    headers = {'User-Agent': 'MapCompraApp/1.0'}
+    
+    # Tentativa 1: Pesquisa detalhada por rua + bairro + cidade
+    if logradouro:
+        query = f"{logradouro}, {bairro}, {cidade}, {uf}, Brazil"
+        try:
+            url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query)}&format=json&limit=1"
+            response = requests.get(url, headers=headers, timeout=4)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return float(data[0]['lat']), float(data[0]['lon']), dados_cep
+        except Exception:
+            pass
+            
+    # Tentativa 2: Pesquisa por bairro + cidade (caso a rua específica não esteja mapeada)
+    if bairro:
+        query_bairro = f"{bairro}, {cidade}, {uf}, Brazil"
+        try:
+            url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query_bairro)}&format=json&limit=1"
+            response = requests.get(url, headers=headers, timeout=4)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return float(data[0]['lat']), float(data[0]['lon']), dados_cep
+        except Exception:
+            pass
+            
+    return None, None, dados_cep
 
 def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -194,18 +220,16 @@ def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 def gerar_lojas_com_distancia_real(cep, raio_busca):
-    dados_cep = consultar_viacep(cep)
-    lat_user, lon_user = obter_coordenadas(cep)
+    lat_user, lon_user, dados_cep = obter_coordenadas_precisas(cep)
     
-    # Se não achar coordenadas exatas pelo CEP, usa coordenadas padrão de referência em SP
+    # Fallback seguro para coordenadas centrais de São Paulo caso a API falhe temporariamente
     if not lat_user or not lon_user:
-        lat_user, lon_user = -23.4733, -46.5873
+        lat_user, lon_user = -23.5505, -46.6333
         
     lojas_calculadas = []
     for loja in REDES_SUPERMERCADOS_REAIS:
         dist = calcular_distancia_haversine(lat_user, lon_user, loja["lat"], loja["lon"])
         
-        # Inclui todas as lojas que estiverem dentro do raio selecionado pelo utilizador
         if dist <= raio_busca:
             preco_base_cesta = 280.00 * loja["preco_base_fator"]
             lojas_calculadas.append({
@@ -216,7 +240,6 @@ def gerar_lojas_com_distancia_real(cep, raio_busca):
                 "fator_custom": loja["preco_base_fator"]
             })
             
-    # Ordena por proximidade ou menor preço
     lojas_calculadas = sorted(lojas_calculadas, key=lambda x: x["distancia_km"])
     return lojas_calculadas, dados_cep
 
@@ -266,7 +289,7 @@ if 'basket_type' not in st.session_state:
 if 'custom_basket' not in st.session_state:
     st.session_state.custom_basket = {}
 if 'user_cep' not in st.session_state:
-    st.session_state.user_cep = "02300000"
+    st.session_state.user_cep = "05005030" # Exemplo padrão do Allianz Parque (Perdizes)
 if 'dados_endereco' not in st.session_state:
     st.session_state.dados_endereco = None
 if 'search_radius' not in st.session_state:
@@ -448,8 +471,9 @@ elif st.session_state.step == 'results':
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Gera as lojas reais calculando a distância Haversine a partir do CEP inserido
-    base_lojas, _ = gerar_lojas_com_distancia_real(st.session_state.user_cep, st.session_state.search_radius)
+    base_lojas, dados_cep_atual = gerar_lojas_com_distancia_real(st.session_state.user_cep, st.session_state.search_radius)
+    if dados_cep_atual:
+        st.session_state.dados_endereco = dados_cep_atual
 
     if st.session_state.basket_type == 'custom':
         valor_base_custom = sum(
@@ -464,7 +488,7 @@ elif st.session_state.step == 'results':
         for loja in base_lojas:
             loja["preco_exibido"] = loja["preco_cesta"]
     
-    lojas_filtradas = sorted(base_lojas, key=lambda x: x["preco_exibido"])
+    lojas_filtradas = sorted(base_lojas, key=lambda x: x["distancia_km"])
     
     if not lojas_filtradas:
         st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio de busca.")
