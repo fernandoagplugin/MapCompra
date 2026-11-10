@@ -107,7 +107,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Funções de Integração Geográfica Real baseada em Busca de Endereços do OpenStreetMap
+# 3. Funções de Integração Geográfica Estritamente Real (Sem Fallbacks Falsos)
 @st.cache_data(show_spinner=False)
 def consultar_viacep(cep_string):
     cep_limpo = "".join(filter(str.isdigit, str(cep_string)))
@@ -150,8 +150,8 @@ def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
 @st.cache_data(show_spinner=False)
 def buscar_locais_reais_nominatim(lat, lon):
     try:
-        # Pesquisa por supermercados reais indexados na base geográfica da região
-        url = f"https://nominatim.openstreetmap.org/search?q=supermercado+atacado&format=json&lat={lat}&lon={lon}&bounded=1&limit=6"
+        # Consulta restrita a locais reais indexados no OpenStreetMap
+        url = f"https://nominatim.openstreetmap.org/search?q=supermercado+atacado&format=json&lat={lat}&lon={lon}&bounded=1&limit=8"
         headers = {'User-Agent': 'MapCompraApp/1.0'}
         response = requests.get(url, headers=headers, timeout=5)
         if response.status_code == 200:
@@ -172,12 +172,12 @@ def gerar_lojas_inteligentes(cep, raio_busca):
             nome_completo = el.get('display_name', '')
             partes = [p.strip() for p in nome_completo.split(',')]
             
-            # Extrai o nome real do estabelecimento da primeira parte se possível
-            nome_loja = partes[0] if len(partes) > 0 else "Supermercado Local"
-            if len(nome_loja) > 35 or "CEP" in nome_loja:
-                nome_loja = "Supermercado / Atacadista"
+            # Extrai o nome real do local retornado pelo mapa
+            nome_loja = partes[0] if len(partes) > 0 else "Estabelecimento Comercial"
+            if len(nome_loja) > 40 or "CEP" in nome_loja or "Brasil" in nome_loja:
+                nome_loja = "Supermercado / Atacadista Mapeado"
                 
-            # Monta um endereço limpo sem repetições excessivas
+            # Endereço real retornado pelo mapa (sem injetar nomes fictícios)
             endereco_real = ", ".join(partes[:4]) if len(partes) >= 4 else nome_completo
             
             el_lat = float(el.get('lat', lat))
@@ -194,38 +194,11 @@ def gerar_lojas_inteligentes(cep, raio_busca):
                     "fator_custom": 0.98 + (hash(nome_loja) % 10) / 100
                 })
                 
-    # Fallback rigoroso baseado no endereço real fornecido pelo ViaCEP (sem inventar ruas genéricas)
-    if not lojas_formatadas and dados_cep:
-        cidade = dados_cep.get('localidade', 'São Paulo')
-        bairro = dados_cep.get('bairro', 'Centro')
-        uf = dados_cep.get('uf', 'SP')
-        logradouro = dados_cep.get('logradouro', 'Região Comercial')
-        
-        lojas_formatadas = [
-            {
-                "nome": "Assaí Atacadista",
-                "endereco": f"Unidade Atacadista em {bairro} — {cidade} - {uf}",
-                "distancia_km": 1.9,
-                "preco_cesta": 278.90,
-                "fator_custom": 0.98
-            },
-            {
-                "nome": "Atacadão",
-                "endereco": f"Avenida de Acesso Regional — {cidade} - {uf}",
-                "distancia_km": 3.2,
-                "preco_cesta": 281.50,
-                "fator_custom": 0.96
-            },
-            {
-                "nome": f"Mercado Local ({bairro})",
-                "endereco": f"{logradouro} — {bairro}, {cidade} - {uf}",
-                "distancia_km": 2.4,
-                "preco_cesta": 289.00,
-                "fator_custom": 1.00
-            }
-        ]
-        
-    # Remove duplicados com base no nome
+    # NOTA: O bloco de fallback falso foi totalmente removido. 
+    # Se o mapa não encontrar estabelecimentos mapeados no raio, a lista ficará vazia 
+    # e o app informará honestamente o utilizador.
+    
+    # Remove duplicados
     vistos = set()
     lojas_unicas = []
     for loja in lojas_formatadas:
@@ -483,7 +456,7 @@ elif st.session_state.step == 'results':
     lojas_filtradas = sorted(lojas_filtradas, key=lambda x: x["preco_exibido"])
     
     if not lojas_filtradas:
-        st.warning(f"⚠️ Nenhuma unidade encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio de busca.")
+        st.warning(f"⚠️ Nenhuma unidade comercial mapeada encontrada neste raio de {st.session_state.search_radius} km. Tente aumentar o raio de busca para abranger zonas comerciais vizinhas.")
     else:
         vencedor = lojas_filtradas[0]
         demais_lojas = lojas_filtradas[1:]
